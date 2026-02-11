@@ -1,39 +1,37 @@
 # 🌌 Sky Monitoring
 
-### Real-time Aircraft & Satellite Overhead Tracking
+### Real-Time Aircraft & Satellite Overhead Tracking
 
-Sky Monitoring is an open-source command-line tool that lets you observe
-the sky above your location in real time.
+Sky Monitoring is an open-source command-line tool that observes the sky
+above your location in real time.
 
-It detects: - ✈️ Aircraft entering and exiting your defined radius - 🛰️
-Satellites and space objects passing overhead - 📡 Enriched flight data
-from multiple aviation data providers - 📁 Structured JSON events for
-logging, automation, or further processing
+It detects:
 
-This project is designed to be clean, hackable, modular, and free from
-vendor lock-in.
+-   ✈️ Aircraft entering and exiting a configurable geographic radius\
+-   🛰️ Satellites and space objects passing overhead\
+-   📡 Enriched flight metadata from multiple aviation data providers\
+-   📁 Structured JSON events for logging, automation, or analytics
+
+Built to be modular, transparent, and vendor-neutral.
 
 ------------------------------------------------------------------------
 
-# 🚀 Features
+# 🚀 What This Project Does
 
 ## ✈ Aircraft Monitoring
 
 -   Uses OpenSky Network state vectors
 -   Detects ENTER and EXIT events within your configured radius
--   Optional multi-layer enrichment pipeline:
-    -   ADSBDB (fast aircraft registry lookup)
-    -   AirLabs (route, airline, metadata)
-    -   AviationStack (fallback route & airline data)
--   Intelligent fallback behavior when APIs fail or rate limits are hit
+-   Supports layered enrichment from multiple providers
+-   Gracefully degrades if enrichment APIs fail
 
-## 🛰 Satellite & Space Object Monitoring
+## 🛰 Satellite Monitoring
 
 -   Uses TLE data from CelesTrak
--   Computes real-time elevation, azimuth, and range using Skyfield
--   Emits ENTER/EXIT events based on configurable elevation threshold
+-   Computes elevation, azimuth, and range using Skyfield
+-   Emits ENTER and EXIT events based on elevation threshold
 -   Supports curated monitoring via `data/space_objects.json`
--   Hot-reloads space object definitions without restarting
+-   Hot-reloads monitored objects without restarting
 
 ------------------------------------------------------------------------
 
@@ -52,63 +50,104 @@ python main.py
 
 ------------------------------------------------------------------------
 
-# ⚙️ Configuration
+# ⚙️ Configuration Overview
 
-Edit `config.toml` to configure:
+All settings are controlled via `config.toml`.
 
--   Home latitude / longitude
--   Aircraft radius (km)
--   Satellite elevation threshold
--   Update intervals
--   Enrichment providers
--   Optional JSON event logging
+## Home Location
 
-Example:
+You may configure your observer location manually:
 
 ``` toml
 [home]
 lat = 40.758
 lon = -73.9855
-
-[planes_opensky]
-enabled = true
-radius_km = 10
-
-[satellites]
-enabled = true
-min_elevation_deg = 15
-update_seconds = 2
 ```
 
-------------------------------------------------------------------------
+Manual coordinates are strongly recommended for accuracy and
+reproducibility.
 
-# 📡 Aviation Data Enrichment (Optional but Recommended)
+Optional IP-based geolocation:
 
-Sky Monitoring uses a layered enrichment approach.
+``` toml
+[home]
+geolocation = true
+```
 
-If one provider fails or is rate-limited, the system gracefully falls
-back to others.
-
-## 1️⃣ ADSBDB
-
-Fast aircraft registration lookup.
-
-Website: https://www.adsbdb.com/
-
--   No official public API documentation
--   Used primarily for aircraft registry and ICAO type lookup
+IP-based geolocation may be imprecise and should not be used for
+high-accuracy deployments.
 
 ------------------------------------------------------------------------
 
-## 2️⃣ AirLabs
+# ✈ Aircraft Radius Logic
 
-Flight route and airline enrichment.
+``` toml
+[planes_opensky]
+radius_km = 10
+```
 
-Website: https://airlabs.co/
+Aircraft are tracked when their surface distance from your configured
+latitude/longitude is less than or equal to `radius_km`.
 
--   Create a free account
--   Generate your API key
--   Add to your `.env` file:
+Distance is calculated using great-circle geometry (Earth curvature
+aware).
+
+When an aircraft crosses into the radius → ENTER event\
+When it leaves the radius → EXIT event
+
+This is geographic proximity --- not radar strength or signal range.
+
+------------------------------------------------------------------------
+
+# 🛰 Satellite Elevation Logic
+
+``` toml
+[satellites]
+min_elevation_deg = 15
+```
+
+Satellites are tracked based on elevation angle above the horizon.
+
+-   0° → horizon\
+-   90° → directly overhead
+
+Elevation is calculated using orbital propagation from TLE data via
+Skyfield.
+
+------------------------------------------------------------------------
+
+# 📡 Aviation Data Enrichment
+
+Enrichment is optional but recommended.
+
+Sky Monitoring uses a layered fallback system:
+
+1.  OpenSky provides raw aircraft position
+2.  ADSBDB enriches aircraft registration/type
+3.  AirLabs enriches route and airline metadata
+4.  AviationStack acts as additional fallback
+
+If all enrichment providers fail, core tracking continues.
+
+------------------------------------------------------------------------
+
+## ADSBDB
+
+Aircraft registration lookup.
+
+https://www.adsbdb.com/
+
+------------------------------------------------------------------------
+
+## AirLabs
+
+Route and airline enrichment.
+
+https://airlabs.co/
+
+-   Create account
+-   Generate API key
+-   Add to `.env`:
 
 ``` bash
 AIRLABS_API_KEY=your_key_here
@@ -116,13 +155,13 @@ AIRLABS_API_KEY=your_key_here
 
 ------------------------------------------------------------------------
 
-## 3️⃣ AviationStack
+## AviationStack
 
-Alternative route and airline enrichment.
+Alternative enrichment provider.
 
-Website: https://aviationstack.com/
+https://aviationstack.com/
 
--   Create an account
+-   Create account
 -   Generate API key
 -   Add to `.env`:
 
@@ -132,40 +171,27 @@ AVIATIONSTACK_API_KEY=your_key_here
 
 ------------------------------------------------------------------------
 
-## 🔁 Enrichment Fallback Logic
+# 🛰 Curated Space Objects
 
-1.  OpenSky provides raw ADS-B data.
-2.  ADSBDB enriches aircraft registration/type.
-3.  AirLabs enriches route and airline metadata.
-4.  AviationStack acts as a fallback if route data is missing.
+Default monitored NORAD IDs:
 
-If all enrichment providers fail, raw aircraft data is still shown.
-
-------------------------------------------------------------------------
-
-# 🛰 Monitored Space Objects
-
-Default curated objects (NORAD IDs):
-
--   25544 --- International Space Station (ISS)
--   48274 --- Tiangong Space Station
--   53239 --- CSS Wentian
--   54216 --- CSS Mengtian
--   20580 --- Hubble Space Telescope
--   25338 --- NOAA-15
--   28654 --- NOAA-18
--   33591 --- NOAA-19
--   25994 --- Terra
--   27424 --- Aqua
--   37849 --- Suomi NPP
--   39084 --- Landsat 8
--   49260 --- Landsat 9
--   40697 --- Sentinel-2A
+-   25544 --- International Space Station\
+-   48274 --- Tiangong Space Station\
+-   53239 --- CSS Wentian\
+-   54216 --- CSS Mengtian\
+-   20580 --- Hubble Space Telescope\
+-   25338 --- NOAA-15\
+-   28654 --- NOAA-18\
+-   33591 --- NOAA-19\
+-   25994 --- Terra\
+-   27424 --- Aqua\
+-   37849 --- Suomi NPP\
+-   39084 --- Landsat 8\
+-   49260 --- Landsat 9\
+-   40697 --- Sentinel-2A\
 -   42063 --- Sentinel-2B
 
-Data source: https://celestrak.org/
-
-TLE data is downloaded live and cached locally.
+TLE source: https://celestrak.org/
 
 ------------------------------------------------------------------------
 
@@ -179,40 +205,25 @@ enabled = true
 path = "data/events.jsonl"
 ```
 
-Each event is emitted in structured format suitable for automation or
-analytics.
+Events are structured and suitable for automation or analytics.
 
 ------------------------------------------------------------------------
 
 # ⚖️ Legal Disclaimer
 
-This project does **not** host, store, resell, or redistribute
-third-party data.
+This software does not host, store, resell, or redistribute third-party
+data.
 
-All data is pulled directly from public APIs or publicly available
-sources at runtime.
+All external data is pulled directly from public APIs at runtime.
 
-Users are responsible for: - Complying with each provider's Terms of
-Service - Managing their own API keys - Respecting rate limits -
-Ensuring lawful use within their jurisdiction
+Users are responsible for: - Complying with provider Terms of Service -
+Managing their own API keys - Respecting rate limits - Ensuring lawful
+use
 
-This software is provided **as-is**, without warranty of any kind.
+This software is provided "as-is" without warranty of any kind.
 
-The maintainers are not responsible for: - API policy changes - Service
-outages - Inaccurate or delayed data - Misuse of third-party services
-
-------------------------------------------------------------------------
-
-# 🧠 Why This Exists
-
-Because watching the sky is fun.
-
-Because space is cool.
-
-Because aircraft routing is fascinating.
-
-And because open-source tools should be modular, transparent, and
-respectful of upstream data providers.
+The maintainers are not responsible for service outages, API changes,
+data inaccuracies, or misuse of third-party services.
 
 ------------------------------------------------------------------------
 
@@ -220,10 +231,14 @@ respectful of upstream data providers.
 
 Pull requests are welcome.
 
-Ideas: - Terminal UI enhancements - Web dashboard frontend - Historical
-analytics module - Additional enrichment providers - Improved caching
-strategies
+Potential extensions: - Terminal UI improvements - Web dashboard -
+Historical analytics - Additional enrichment providers - Performance
+tuning
 
 ------------------------------------------------------------------------
 
-# 🛰 Enjoy Watching the Sky
+# 🛰 Watch the Sky
+
+Because space is cool.\
+Because air traffic is fascinating.\
+Because open source should be transparent and fun.

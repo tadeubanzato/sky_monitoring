@@ -10,6 +10,12 @@ Sky Monitoring is an open-source, modular Python project that monitors the sky *
 
 It’s CLI-first on purpose: simple to run, easy to extend, and friendly to hobbyists.
 
+### Sample Airplane Enter and Exit events
+```bash
+[13:28:59.624Z] PLANE ENTER ✈️  Endeavor Air 9E5131  MYR→LGA  (a3c259)  United States  alt=4175ft  spd=269kt  trk=64°  [adsbdb:adsbdb:ok]
+[13:30:32.027Z] PLANE EXIT ✈️  Endeavor Air EDV5131  MYR→LGA  (a3c259)  United States  alt=4175ft  spd=269kt  trk=64°  [adsbdb:adsbdb:ok]
+```
+
 ---
 
 ## 🚀 Quick Start

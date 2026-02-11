@@ -14,6 +14,7 @@ It’s CLI-first on purpose: simple to run, easy to extend, and friendly to hobb
 ```bash
 [13:28:59.624Z] PLANE ENTER ✈️  Endeavor Air 9E5131  MYR→LGA  (a3c259)  United States  alt=4175ft  spd=269kt  trk=64°  [adsbdb:adsbdb:ok]
 [13:30:32.027Z] PLANE EXIT ✈️  Endeavor Air EDV5131  MYR→LGA  (a3c259)  United States  alt=4175ft  spd=269kt  trk=64°  [adsbdb:adsbdb:ok]
+[13:34:06.472Z] SPACE_OBJECTS ENTER 🛰️  TERRA  elev=10.1°  dist=2143.5km
 ```
 
 ---

@@ -1,0 +1,108 @@
+{
+  "flight_icao:N747EE": {
+    "ts": 1770816538.522166,
+    "val": null
+  },
+  "flight_icao:(NOCALLSIGN)": {
+    "ts": 1770851072.2322938,
+    "val": null
+  },
+  "flight_icao:N777ZA": {
+    "ts": 1770850624.154638,
+    "val": null
+  },
+  "flight_icao:N920PD": {
+    "ts": 1770850625.827564,
+    "val": null
+  },
+  "flight_icao:TWY562": {
+    "ts": 1770850837.689693,
+    "val": {
+      "hex": null,
+      "reg_number": null,
+      "aircraft_icao": null,
+      "airline_icao": "TWY",
+      "airline_iata": null,
+      "company": "Solairus Aviation",
+      "flight_icao": "TWY562",
+      "flight_iata": null,
+      "flight_number": "562",
+      "dep_iata": "HPN",
+      "dep_icao": "KHPN",
+      "arr_iata": "PBI",
+      "arr_icao": "KPBI",
+      "route": "HPN→PBI",
+      "alt_ft": null,
+      "trk_deg": null,
+      "speed_raw": null,
+      "speed_kt": null,
+      "v_speed": null,
+      "status": "scheduled",
+      "updated": null,
+      "type": null,
+      "flag": null,
+      "lat": null,
+      "lng": null,
+      "source": "aviationstack"
+    }
+  },
+  "flight_icao:N92N": {
+    "ts": 1770851348.509161,
+    "val": null
+  },
+  "flight_icao:N83HH": {
+    "ts": 1770851456.33443,
+    "val": null
+  },
+  "flight_icao:N888TY": {
+    "ts": 1770851500.46852,
+    "val": null
+  },
+  "flight_icao:N88ZA": {
+    "ts": 1770851533.851135,
+    "val": null
+  },
+  "flight_icao:N217MH": {
+    "ts": 1770851535.4873111,
+    "val": null
+  },
+  "flight_icao:N976TR": {
+    "ts": 1770851558.735787,
+    "val": null
+  },
+  "flight_icao:POD4": {
+    "ts": 1770851974.7853131,
+    "val": {
+      "hex": null,
+      "reg_number": null,
+      "aircraft_icao": null,
+      "airline_icao": "POD",
+      "airline_iata": null,
+      "company": "Craft Charter",
+      "flight_icao": "POD4",
+      "flight_iata": null,
+      "flight_number": "4",
+      "dep_iata": "HPN",
+      "dep_icao": "KHPN",
+      "arr_iata": "PGV",
+      "arr_icao": "KPGV",
+      "route": "HPN→PGV",
+      "alt_ft": null,
+      "trk_deg": null,
+      "speed_raw": null,
+      "speed_kt": null,
+      "v_speed": null,
+      "status": "scheduled",
+      "updated": null,
+      "type": null,
+      "flag": null,
+      "lat": null,
+      "lng": null,
+      "source": "aviationstack"
+    }
+  },
+  "flight_icao:N59ZA": {
+    "ts": 1770852019.9415889,
+    "val": null
+  }
+}

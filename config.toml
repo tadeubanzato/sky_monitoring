@@ -1,0 +1,56 @@
+[home]
+geolocation = false
+lat = 40.7580
+lon = -73.9855
+
+[events]
+# Optional. If empty, nothing is written to disk.
+# out_file = "data/events.jsonl"
+out_file = ""
+
+[planes_opensky]
+enabled = true
+radius_km = 10.0
+poll_seconds = 10
+disappear_grace_seconds = 30
+user = ""
+pass = ""
+
+[enrichment_airlabs]
+enabled = true
+cache_ttl_seconds = 300
+include_route = true
+
+[satellites]
+enabled = true
+
+# 10° is a good “not too noisy” threshold.
+# If you want more activity, set to 5.0.
+min_elevation_deg = 10.0
+
+# 2–5 seconds keeps it smooth without burning CPU.
+update_seconds = 2.0
+
+# Pulls a big TLE set but we hard-filter to only your curated IDs.
+tle_url = "https://celestrak.org/NORAD/elements/gp.php?FORMAT=tle&GROUP=active"
+tle_cache_file = "data/tles_active.tle"
+tle_reload_hours = 12
+
+# IMPORTANT: this must be false for curated mode.
+track_all = false
+
+# Your curated list
+only_norad_ids = [
+  25544, 48274, 53239, 54216,
+  20580,
+  25338, 28654, 33591,
+  25994, 27424, 37849,
+  39084, 49260,
+  40697, 42063
+]
+
+[cli]
+color = "auto"      # auto | always | never
+compact_ts = true
+kind_width = 12
+event_width = 8

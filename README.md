@@ -159,7 +159,7 @@ Each enrichment provider has its own Terms of Service and rate limits. You must 
 
 ## 🧮 The Math (how “nearby” and “overhead” are computed)
 
-### ✈ Aircraft radius detection (great‑circle distance)
+### ✈️ Aircraft radius detection (great‑circle distance)
 Aircraft proximity uses a geographic radius in kilometers:
 
 ```toml

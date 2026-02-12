@@ -10,7 +10,7 @@ out_file = ""
 
 [planes_opensky]
 enabled = true
-radius_km = 5.0
+radius_km = 10.0
 poll_seconds = 10
 disappear_grace_seconds = 30
 user = ""

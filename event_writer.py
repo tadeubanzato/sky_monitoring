@@ -32,7 +32,6 @@ def _ts_compact(ts_iso: str) -> str:
     if "T" not in s:
         return s
     time_part = s.split("T", 1)[1].replace("Z", "")
-    # Keep milliseconds (3 digits)
     if "." in time_part:
         hhmmss, frac = time_part.split(".", 1)
         frac3 = (frac + "000")[:3]
@@ -91,7 +90,13 @@ DATA_DIR = BASE_DIR / "data"
 
 # ─────────────────────────────────────────────
 # Config loader (TOML)
-# - Default: ./config.toml next to code
+#
+# Default: ./config.toml (next to code)
+# Override:
+#   SKYMON_CONFIG=/path/to/config.toml
+#
+# Backward-compat:
+#   OKAME_CONFIG still works if set (legacy)
 # ─────────────────────────────────────────────
 
 _CONFIG_CACHE: Optional[Dict[str, Any]] = None
@@ -102,7 +107,13 @@ def load_config() -> Dict[str, Any]:
     if _CONFIG_CACHE is not None:
         return _CONFIG_CACHE
 
-    config_path = os.getenv("OKAME_CONFIG", "").strip()
+    # Prefer new env var name
+    config_path = os.getenv("SKYMON_CONFIG", "").strip()
+
+    # Backward compat for older installs
+    if not config_path:
+        config_path = os.getenv("OKAME_CONFIG", "").strip()
+
     p = Path(config_path) if config_path else (BASE_DIR / "config.toml")
 
     if not p.exists() or tomllib is None:
@@ -144,16 +155,18 @@ def _cli_settings() -> Dict[str, Any]:
 
 def _cli_use_color() -> bool:
     c = _cli_settings()
-    # auto = use if tty
     v = c.get("color", "auto")
+
     if isinstance(v, bool):
         return v and sys.stdout.isatty()
+
     if isinstance(v, str):
         vv = v.strip().lower()
         if vv == "always":
             return True
         if vv == "never":
             return False
+
     return sys.stdout.isatty()
 
 
@@ -327,7 +340,7 @@ class Event:
     event: str          # ENTER | EXIT | UPDATE | INFO | WARN | OVERHEAD
     kind: str           # plane | sat | space_objects | home
     id: str             # icao24 or NORAD ID or hex
-    label: str          # callsign / stable flight id / satellite name
+    label: str          # callsign or satellite name
     ts: str             # ISO8601 UTC
     meta: Dict[str, Any]
 
@@ -342,16 +355,9 @@ class EventWriter:
         enabled = true
         path = "data/events.jsonl"
 
-    CLI styling options (optional):
-        [cli]
-        color = "auto"        # auto | always | never
-        compact_ts = true
-        kind_width = 12
-        event_width = 8
-
-    Threading:
-      - This project can run multiple trackers (planes + satellites) concurrently.
-      - We guard output/file writes with a lock to prevent interleaved lines.
+    IMPORTANT:
+    - Thread-safe emit() to prevent interleaved log lines.
+    - For planes, prefer meta["display"] if provided by tracker (stable label across events).
     """
 
     def __init__(self, out_file: str = "") -> None:
@@ -361,11 +367,10 @@ class EventWriter:
         load_country_map()
         load_airlines_flat()
 
+        self._lock = threading.Lock()
+
         self._fh = None
         self.out_path: Optional[Path] = None
-
-        # Prevent interleaved console/file output when multiple trackers emit at once
-        self._lock = threading.Lock()
 
         if _event_logs_enabled():
             chosen = out_file.strip() if out_file else _event_logs_path_default()
@@ -412,15 +417,7 @@ class EventWriter:
         return "Unknown"
 
     def _plane_flight(self, e: Event) -> str:
-        """
-        Prefer an explicit stable flight id if provided by the tracker.
-        """
         meta = e.meta if isinstance(e.meta, dict) else {}
-
-        fid = meta.get("flight_id")
-        if isinstance(fid, str) and fid.strip():
-            return fid.strip()
-
         enriched = meta.get("enriched") if isinstance(meta.get("enriched"), dict) else {}
 
         flight = (
@@ -442,11 +439,6 @@ class EventWriter:
 
     def _plane_route(self, e: Event) -> str:
         meta = e.meta if isinstance(e.meta, dict) else {}
-
-        # Prefer explicit route string if provided by tracker (stable)
-        rs = meta.get("route_str")
-        if isinstance(rs, str) and rs.strip():
-            return rs.strip()
 
         r = meta.get("route")
         if isinstance(r, dict):
@@ -477,7 +469,7 @@ class EventWriter:
         return f"{dep2}→{arr2}"
 
     def _plane_company_flight_route(self, e: Event) -> str:
-        # If tracker provides a stable display string, use it.
+        # Prefer tracker-provided stable label
         meta = e.meta if isinstance(e.meta, dict) else {}
         disp = meta.get("display")
         if isinstance(disp, str) and disp.strip():
@@ -488,21 +480,28 @@ class EventWriter:
         route = self._plane_route(e)
         return f"{company} {flight}  {route}"
 
+    def _strip_prefix(self, s: str, prefix: str) -> str:
+        ss = (s or "").strip()
+        if ss.lower().startswith(prefix.lower()):
+            return ss[len(prefix):].lstrip(":").lstrip()
+        return ss
+
     def _plane_status_tag(self, e: Event) -> str:
         meta = e.meta if isinstance(e.meta, dict) else {}
 
         ads = meta.get("adsbdb_status")
         air = meta.get("airlabs_status")
-        avs = meta.get("aviationstack_status")
+        avi = meta.get("aviationstack_status")
         legacy = meta.get("enrich_status")
 
         parts: list[str] = []
         if isinstance(ads, str) and ads.strip():
-            parts.append(f"adsbdb:{ads.strip()}")
+            # Avoid adsbdb:adsbdb:...
+            parts.append(f"adsbdb:{self._strip_prefix(ads, 'adsbdb')}")
         if isinstance(air, str) and air.strip():
-            parts.append(f"airlabs:{air.strip()}")
-        if isinstance(avs, str) and avs.strip():
-            parts.append(f"aviationstack:{avs.strip()}")
+            parts.append(f"airlabs:{self._strip_prefix(air, 'airlabs')}")
+        if isinstance(avi, str) and avi.strip():
+            parts.append(f"aviationstack:{self._strip_prefix(avi, 'aviationstack')}")
         if not parts and isinstance(legacy, str) and legacy.strip():
             parts.append(legacy.strip())
 
@@ -580,6 +579,7 @@ class EventWriter:
                 f"trk={trk_deg if trk_deg not in (None, '', '?') else '?'}°"
                 f"{status_part}"
             )
+            sys.stdout.flush()
             return
 
         # SAT / SPACE OBJECTS
@@ -597,6 +597,7 @@ class EventWriter:
                     print(f"{prefix} {icon}  tle_loaded  " + _kv(meta, ["count_total_in_file", "count_tracking", "source", "cache_file"]))
                 else:
                     print(f"{prefix} {icon}  {e.label}  " + _kv(meta, list(meta.keys())[:8]))
+            sys.stdout.flush()
             return
 
         # HOME / INFO / WARN / other
@@ -612,12 +613,12 @@ class EventWriter:
                 print(f"{prefix} ℹ️  {e.label}  " + _kv(meta, keys))
             else:
                 print(f"{prefix} ℹ️  {e.label}")
+        sys.stdout.flush()
 
     def emit(self, event: Event) -> None:
-        # Prevent interleaved log lines between concurrent emitters
+        # One lock covers print + file write so we never interleave lines like "aa8548aa8548..."
         with self._lock:
             self._print_pretty(event)
-            sys.stdout.flush()
 
             if self._fh:
                 line = json.dumps(asdict(event), ensure_ascii=False)
@@ -625,9 +626,10 @@ class EventWriter:
                 self._fh.flush()
 
     def close(self) -> None:
-        if self._fh:
-            self._fh.close()
-            self._fh = None
+        with self._lock:
+            if self._fh:
+                self._fh.close()
+                self._fh = None
 
 
 AIRLABS_API_KEY = get_airlabs_api_key()

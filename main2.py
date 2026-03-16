@@ -52,6 +52,10 @@ def clear_screen():
 
 
 def draw_frame(home_lat, home_lon, plane_tracker, sat_tracker, plane_radius_km, sat_radius_km, w=71, h=31):
+    plane_sym = "✈"
+    sat_sym = "🛰"
+    overlap_sym = "✦"
+
     grid = [[" " for _ in range(w)] for _ in range(h)]
 
     # border
@@ -68,8 +72,10 @@ def draw_frame(home_lat, home_lon, plane_tracker, sat_tracker, plane_radius_km, 
 
     # planes in radius
     plane_count = 0
+    plane_rows = []
     for icao24 in list(getattr(plane_tracker, "_inside", {}).keys()):
         pos = getattr(plane_tracker, "_last_position", {}).get(icao24)
+        dist_m = getattr(plane_tracker, "_last_dist_m", {}).get(icao24)
         if not pos:
             continue
         lat, lon = pos
@@ -79,11 +85,14 @@ def draw_frame(home_lat, home_lon, plane_tracker, sat_tracker, plane_radius_km, 
             continue
         x, y = p
         if 0 < x < w - 1 and 0 < y < h - 1:
-            grid[y][x] = "P"
+            grid[y][x] = plane_sym
             plane_count += 1
+            dkm = (float(dist_m) / 1000.0) if dist_m is not None else None
+            plane_rows.append((icao24, dkm))
 
     # satellites above threshold
     sat_count = 0
+    sat_rows = []
     for norad in list(getattr(sat_tracker, "_overhead", set())):
         s = getattr(sat_tracker, "_last_sample", {}).get(norad)
         if not s:
@@ -98,19 +107,36 @@ def draw_frame(home_lat, home_lon, plane_tracker, sat_tracker, plane_radius_km, 
             continue
         x, y = p
         if 0 < x < w - 1 and 0 < y < h - 1:
-            if grid[y][x] == "P":
-                grid[y][x] = "*"
+            if grid[y][x] == plane_sym:
+                grid[y][x] = overlap_sym
             else:
-                grid[y][x] = "S"
+                grid[y][x] = sat_sym
             sat_count += 1
+            sat_rows.append((getattr(s, 'name', norad), float(getattr(s, 'elev_deg', 0.0)), float(getattr(s, 'dist_km', 0.0))))
 
     clear_screen()
     print("Sky Monitoring Radar (terminal)  |  q = quit")
     print(f"Home: {home_lat:.5f}, {home_lon:.5f}  |  Planes radius: {plane_radius_km:.1f}km  |  Satellites radius: {sat_radius_km:.0f}km")
-    print(f"Legend: + home, P plane, S satellite, * overlap | planes:{plane_count} sats:{sat_count}")
+    print(f"Legend: + home, {plane_sym} plane, {sat_sym} satellite, {overlap_sym} overlap | planes:{plane_count} sats:{sat_count}")
     print()
     for row in grid:
         print("".join(row))
+
+    print("\nActive planes (icao24 / distance):")
+    if plane_rows:
+        for icao24, dkm in plane_rows[:12]:
+            ds = f"{dkm:.1f}km" if dkm is not None else "n/a"
+            print(f"  {plane_sym} {icao24}  {ds}")
+    else:
+        print("  none")
+
+    print("\nActive satellites (name / elev / distance):")
+    if sat_rows:
+        for nm, elev, dkm in sat_rows[:12]:
+            short = (nm or "?")[:30]
+            print(f"  {sat_sym} {short}  elev={elev:.1f}°  dist={dkm:.0f}km")
+    else:
+        print("  none")
 
 
 def main():

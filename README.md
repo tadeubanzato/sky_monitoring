@@ -22,7 +22,7 @@ It’s CLI-first on purpose: simple to run, easy to extend, and friendly to hobb
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/sky_monitoring.git
+git clone https://github.com/tadeubanzato/sky_monitoring.git
 cd sky_monitoring
 
 python -m venv .venv
@@ -65,6 +65,8 @@ space_objects_file = "data/space_objects.json"
 enabled = true
 path = "data/events.jsonl"
 ```
+
+> Logging config compatibility: runtime prefers `[events].out_file`, and also supports legacy `[event_logs]` (`enabled + path`).
 
 ---
 

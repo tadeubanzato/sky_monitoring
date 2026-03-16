@@ -31,7 +31,10 @@ from sats_skyfield import build_sat_tracker
 
 
 def load_config(path: str) -> dict:
-    return tomllib.loads(Path(path).read_text(encoding="utf-8"))
+    p = Path(path)
+    if not p.exists():
+        return {}
+    return tomllib.loads(p.read_text(encoding="utf-8"))
 
 
 def main() -> None:
@@ -50,7 +53,15 @@ def main() -> None:
         timeout=8,
     )
 
+    # Backward-compatible event log config support:
+    # - preferred: [events].out_file
+    # - legacy/readme variants: [event_logs].enabled + [event_logs].path
     out_file = (cfg.get("events", {}) or {}).get("out_file", "") or ""
+    if not out_file:
+        event_logs = (cfg.get("event_logs", {}) or {})
+        if bool(event_logs.get("enabled", False)):
+            out_file = str(event_logs.get("path", "") or "")
+
     writer = EventWriter(out_file=out_file)
 
     # Always print at least one INFO event so you know it's alive
